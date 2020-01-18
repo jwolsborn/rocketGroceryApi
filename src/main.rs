@@ -77,6 +77,26 @@ fn get_list(data: State<Mutex<Groceries>>) -> ApiResponse {
     }
 }
 
+#[post("/<item>")]
+fn add_item(data: State<Mutex<Groceries>>, item: String) -> ApiResponse {
+    let mut grocery_list =
+        match data.lock() {
+            Err(_) =>
+                return ApiResponse {
+                    json: json!({"message": "Data is currently thread locked"}),
+                    status: Status::Conflict
+                },
+            Ok(data) => data
+        };
+
+    grocery_list.0.push(item.to_string());
+
+    ApiResponse {
+        json: json!({"message": format!("Item {} added", &item)}),
+        status: Status::Ok
+    }
+}
+
 fn rocket() -> rocket::Rocket {
     let grocery_list = Mutex::new(Groceries(Vec::new()));
 
@@ -84,7 +104,9 @@ fn rocket() -> rocket::Rocket {
         .manage(grocery_list)
         .mount("/", routes![health])
         .mount("/list", routes![get_list])
+        .mount("/add", routes![add_item])
 }
+
 fn main() {
     rocket().launch();
 }
