@@ -9,7 +9,9 @@ use serde::Serialize;
 use rocket::http::{RawStr, Status, ContentType};
 use rocket::request::Request;
 use rocket::response;
+use rocket::State;
 use rocket::response::{Responder, Response};
+use std::sync::Mutex;
 
 #[derive(Debug)]
 struct ApiResponse {
@@ -17,6 +19,9 @@ struct ApiResponse {
     status: Status,
 
 }
+
+#[derive(Serialize)]
+struct Groceries(Vec<String>);
 
 impl<'r> Responder<'r> for ApiResponse {
     fn respond_to(self, req: &Request) -> response::Result<'r>{
@@ -54,10 +59,31 @@ fn health() -> ApiResponse {
     }
 }
 
+#[get("/")]
+fn get_list(data: State<Mutex<Groceries>>) -> ApiResponse {
+    let grocery_list =
+        match data.lock() {
+            Err(_) =>
+                return ApiResponse {
+                    json: json!({"message": "Data is currently thread locked"}),
+                    status: Status::Conflict
+                },
+            Ok(data) => data
+        };
+
+    ApiResponse {
+        json: json!({"groceries": grocery_list.0 }),
+        status: Status::Ok
+    }
+}
+
 fn rocket() -> rocket::Rocket {
+    let grocery_list = Mutex::new(Groceries(Vec::new()));
+
     rocket::ignite()
-        .mount("/", routes![index])
-        .mount("/health", routes![health])
+        .manage(grocery_list)
+        .mount("/", routes![health])
+        .mount("/list", routes![get_list])
 }
 fn main() {
     rocket().launch();
