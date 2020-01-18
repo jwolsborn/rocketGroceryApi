@@ -1,5 +1,5 @@
 [package]
-name = "rocketGroceryApi"
+name = "rocket_grocery_api"
 version = "0.1.0"
 authors = ["Josh Wolsborn <wolsborn@pdx.edu>"]
 edition = "2018"

@@ -4,9 +4,9 @@
 #[macro_use] extern crate rocket_contrib;
 extern crate serde_json;
 
-use rocket_contrib::json::{Json, JsonValue};
+use rocket_contrib::json::{JsonValue};
 use serde::Serialize;
-use rocket::http::{RawStr, Status, ContentType};
+use rocket::http::{Status, ContentType};
 use rocket::request::Request;
 use rocket::response;
 use rocket::State;
@@ -32,25 +32,6 @@ impl<'r> Responder<'r> for ApiResponse {
     }
 }
 
-#[get("/<num>")]
-fn index(num: &RawStr) -> ApiResponse {
-    let mut vec = vec![1,2,3];
-    match num.as_str() {
-        "one" =>  ApiResponse {
-            json: json!({"data": vec}),
-            status: Status::Ok
-            },
-        "two" => ApiResponse {
-            json: json!({"message": "Try using two"}),
-            status: Status::SeeOther
-            },
-        _   => ApiResponse {
-            json: json!({"message": "This is so wrong"}),
-            status: Status::Unauthorized
-            }
-    }
-}
-
 #[get("/")]
 fn health() -> ApiResponse {
     ApiResponse {
@@ -61,6 +42,7 @@ fn health() -> ApiResponse {
 
 #[get("/")]
 fn get_list(data: State<Mutex<Groceries>>) -> ApiResponse {
+
     let grocery_list =
         match data.lock() {
             Err(_) =>
@@ -79,6 +61,7 @@ fn get_list(data: State<Mutex<Groceries>>) -> ApiResponse {
 
 #[post("/<item>")]
 fn add_item(data: State<Mutex<Groceries>>, item: String) -> ApiResponse {
+
     let mut grocery_list =
         match data.lock() {
             Err(_) =>
@@ -93,8 +76,39 @@ fn add_item(data: State<Mutex<Groceries>>, item: String) -> ApiResponse {
 
     ApiResponse {
         json: json!({"message": format!("Item {} added", &item)}),
-        status: Status::Ok
+        status: Status::Created
     }
+}
+
+#[put("/<item>")]
+fn remove_item(data: State<Mutex<Groceries>>, item: String) -> ApiResponse {
+
+    let mut grocery_list =
+        match data.lock() {
+            Err(_) =>
+                return ApiResponse {
+                    json: json!({"message": "Data is currently thread locked"}),
+                    status: Status::Conflict
+                },
+            Ok(data) => data
+        };
+
+    let length = grocery_list.0.len();
+    grocery_list.0.retain(|x| x != &item.to_string());
+    let new_length = grocery_list.0.len();
+
+    if length == new_length {
+        return ApiResponse {
+            json: json!({"message": format!("Item {} could not be found", &item)}),
+            status: Status::BadRequest
+        }
+    }
+
+    ApiResponse {
+        json: json!({"message": format!("Item {} removed", &item)}),
+        status: Status::Accepted
+    }
+
 }
 
 fn rocket() -> rocket::Rocket {
@@ -105,6 +119,7 @@ fn rocket() -> rocket::Rocket {
         .mount("/", routes![health])
         .mount("/list", routes![get_list])
         .mount("/add", routes![add_item])
+        .mount("/remove", routes![remove_item])
 }
 
 fn main() {
