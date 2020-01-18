@@ -6,7 +6,9 @@ Since I the rocket crate it is important to run this application on the nightly 
 running on rust-1.42.0-nightly
 
 **rustup default nightly** will download, and build, on the nightly version
+
 **cargo build** to build the application
+
 **cargo run** to run the application
 
 The server operates on https://localhost:8000
