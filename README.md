@@ -3,9 +3,9 @@
 ## Build and running the application
 
 Since I the rocket crate it is important to run this application on the nightly build of rust. This application was built and
-running on rust-1.42.0-nightly
+running on rust-1.42.0-nightly 2020-01-18
 
-**rustup default nightly** will download, and build, on the nightly version
+**rustup default nightly-2020-01-18** will download, and build, on the nightly version
 
 **cargo build** to build the application
 
